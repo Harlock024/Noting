@@ -1,0 +1,8 @@
+zig-cache/
+zig-out/
+zig-pkg/
+.zig-cache/
+build/
+build-*/
+docgen_tmp/
+
