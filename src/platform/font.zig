@@ -26,9 +26,12 @@ pub fn deinit(self: *Self) void {
 }
 
 
-pub fn drawText(self:*Self,text:[]const u8,fontColor:c.SDL_Color)!void{
+pub fn drawText(self:*Self,text:[]const u8,fontColor:c.SDL_Color,y_offset:f32)!void{
+    var buf: [1024]u8 = undefined;
+    @memcpy(buf[0..text.len], text);
+    buf[text.len] = 0;
     const surface=c.TTF_RenderText_Solid(self.font,
-        text.ptr,
+        &buf,
         0,
         fontColor);
     try checkSDL(surface != null);
@@ -43,7 +46,7 @@ pub fn drawText(self:*Self,text:[]const u8,fontColor:c.SDL_Color)!void{
         .w = w,
         .h = h,
         .x = self.x,
-        .y = self.y,
+        .y = y_offset,
     };
     try checkSDL(c.SDL_RenderTexture(self.renderer,texture,null,&dst));  
 }

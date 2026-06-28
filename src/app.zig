@@ -58,8 +58,6 @@ pub fn deinit(self:*Self) void {
 
 }
 
-
-
 pub fn update(self: *Self) void {
     _ = self;
 }
@@ -72,34 +70,40 @@ pub fn render(self:*Self) !void {
         .a= 255,
     });
 
-    std.debug.print("buffer en render: {s} len:{}\n", .{self.buffer.items, self.buffer.items.len});
     if (self.buffer.items.len > 0){
-    try self.font.drawText(
-        self.buffer.items,
+        var y_offset:f32 =self.font.y;
+        var lines = std.mem.splitScalar(u8, self.buffer.items,'\n');
+        while (lines.next()) |line| {
+
+            if(line.len > 0){
+            try self.font.drawText(line,
         .{
         .r = 255,
         .g= 255,
         .b=255,
         .a= 255,
-         });
+         },y_offset);
+            }
+        y_offset +=40;
+        }
     }
-    std.debug.print("buffer en render (despues de drawText): {s} len:{}\n", .{self.buffer.items, self.buffer.items.len});
     try self.window.present();
     
 }
 pub fn handle_event(self: *Self,event: platform.Event)!void {
-    std.debug.print("evento recibido\n", .{});
     switch (event) {
         .quit => self.is_running = false,
         .typping => |text|  {
             try self.buffer.appendSlice(std.heap.page_allocator,text);
-            std.debug.print("typing: {s} len:{}\n", .{text, text.len});
                 },
         .editing => |key| switch (key) {
                     platform.c.SDLK_BACKSPACE => {_  = self.buffer.pop();},
-                    platform.c.SDLK_RETURN   => std.debug.print("enter\n", .{}),
-                    platform.c.SDLK_LEFT     => std.debug.print("flecha izq\n", .{}),
-                    platform.c.SDLK_RIGHT    => std.debug.print("flecha der\n", .{}),
+                    platform.c.SDLK_RETURN  => {  try  self.buffer.appendSlice(std.heap.page_allocator, "\n");
+
+                        std.debug.print("buffer raw {any}\n", .{self.buffer.items});
+                    },
+                    // platform.c.SDLK_LEFT     => std.debug.print("flecha izq\n", .{}),
+                    // platform.c.SDLK_RIGHT    => std.debug.print("flecha der\n", .{}),
                 else =>{ },
                 },
             else => { },
@@ -108,7 +112,6 @@ pub fn handle_event(self: *Self,event: platform.Event)!void {
 pub fn run(self: *Self) !void {
     while (self.is_running) {
         while (platform.Event.poll()) |event| {
-            std.debug.print("Evento en run\n", .{});
             try self.handle_event(event);
         }
           self.update();

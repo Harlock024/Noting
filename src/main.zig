@@ -9,7 +9,7 @@ pub fn main() !void {
             .is_resizable = true,
         },
         .{
-            .font = "public/inter-latin-100-normal.ttf",
+            .font = "/usr/share/fonts/TTF/DejaVuSans.ttf",
             .size = 40,
             .x  = 400,
             .y = 300,

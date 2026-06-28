@@ -11,9 +11,7 @@ pub const Event = union(enum) {
 
  pub fn poll() ?Event {
         var event: c.SDL_Event = undefined; 
-        std.debug.print("polling\n", .{}); // check
         if(c.SDL_PollEvent(&event)){
-            std.debug.print("sdl event type: {}\n", .{event.type});
             return switch (event.type) {
                 c.SDL_EVENT_QUIT => .quit,
 
