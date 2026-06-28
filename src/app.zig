@@ -64,9 +64,9 @@ pub fn update(self: *Self) void {
 
 pub fn render(self:*Self) !void {
     try self.window.clear(.{
-        .r = 255,
-        .g= 0,
-        .b=0,
+        .r = 30,
+        .g= 30,
+        .b=30,
         .a= 255,
     });
 
@@ -78,9 +78,9 @@ pub fn render(self:*Self) !void {
             if(line.len > 0){
             try self.font.drawText(line,
         .{
-        .r = 255,
-        .g= 255,
-        .b=255,
+        .r = 220,
+        .g= 220,
+        .b=220,
         .a= 255,
          },y_offset);
             }
