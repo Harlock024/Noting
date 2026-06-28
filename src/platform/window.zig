@@ -10,7 +10,9 @@ pub fn init(title: [:0]const u8,width:i32,heigth:i32,is_resizable:bool) !Self {
     var window_flags: c.SDL_WindowFlags = c.SDL_WINDOW_HIDDEN;
     if (is_resizable) window_flags |= c.SDL_WINDOW_RESIZABLE;
     const window = c.SDL_CreateWindow(title, width, heigth, window_flags);
+
     try checkSDL(window != null);
+
     errdefer c.SDL_DestroyWindow(window);
     const renderer = c.SDL_CreateRenderer(window, null);
     try checkSDL(renderer != null);
@@ -24,6 +26,7 @@ pub fn init(title: [:0]const u8,width:i32,heigth:i32,is_resizable:bool) !Self {
 
 pub fn show(self: *Self) !void {
     try checkSDL(c.SDL_ShowWindow(self.window));
+    _ =c.SDL_StartTextInput(self.window);
 }
 
 pub fn deinit(self: *Self) void {

@@ -11,7 +11,6 @@ pub fn main() !void {
         .{
             .font = "public/inter-latin-100-normal.ttf",
             .size = 40,
-            .text = "Hola Mundo",
             .x  = 400,
             .y = 300,
         }
@@ -19,3 +18,4 @@ pub fn main() !void {
     defer app.deinit();
     try app.run();
 }
+

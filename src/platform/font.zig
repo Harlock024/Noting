@@ -1,22 +1,20 @@
 const c = @import("c.zig").c;
 const checkSDL = @import("internal.zig").checkSDL;
-
+const std = @import("std");
 const Self = @This();
 
 
 font: *c.TTF_Font,
-text: [:0]const u8,
 renderer:*c.SDL_Renderer,
 x:f32,
 y:f32,    
 
-pub fn init(path: [:0]const u8,size:f32,text:[:0]const u8,x:f32,y:f32,renderer:*c.SDL_Renderer,) !Self {
+pub fn init(path: [:0]const u8,size:f32,x:f32,y:f32,renderer:*c.SDL_Renderer,) !Self {
     const font = c.TTF_OpenFont(path,size);
     try  checkSDL(font != null);
     errdefer c.TTF_CloseFont(font);
     return .{
          .font = font.?,
-         .text = text,
          .x = x,
          .y = y,
          .renderer = renderer,
@@ -28,11 +26,9 @@ pub fn deinit(self: *Self) void {
 }
 
 
-
-
-pub fn drawText(self:*Self,fontColor:c.SDL_Color)!void{
+pub fn drawText(self:*Self,text:[]const u8,fontColor:c.SDL_Color)!void{
     const surface=c.TTF_RenderText_Solid(self.font,
-        self.text,
+        text.ptr,
         0,
         fontColor);
     try checkSDL(surface != null);
