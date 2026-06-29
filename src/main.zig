@@ -1,7 +1,9 @@
 const App = @import("app.zig");
+const std = @import("std");
 
-pub fn main() !void {
+pub fn main(init:std.process.Init) !void {
     var app = try App.init(
+        init.io,
         .{ 
             .title = "Noting",
             .width = 800,

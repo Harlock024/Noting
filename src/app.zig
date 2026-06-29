@@ -1,5 +1,6 @@
 const platform = @import("platform");
 const std = @import("std");
+const fs = @import("fs.zig");
 
 
 pub const Config = struct {
@@ -17,13 +18,14 @@ pub const Content = struct {
 };
 
 const Self = @This();
+io: std.Io,
 buffer: std.ArrayList(u8),
 window: platform.Window,
 font: platform.Font,
 is_running: bool = true,
 
 
-    pub fn init(config:Config,content:Content)!Self{
+    pub fn init(io:std.Io,config:Config,content:Content)!Self{
         try platform.init();
         errdefer platform.deinit();
 
@@ -34,6 +36,8 @@ is_running: bool = true,
             config.is_resizable,
         );
         errdefer window.deinit();
+        
+
         var text = try platform.Font.init(
             content.font,    
             content.size,
@@ -41,15 +45,20 @@ is_running: bool = true,
             content.y,
             window.renderer,
        );
+
         errdefer text.deinit();   
         try window.show();
-        
-        return .{
+        var buf: [10240]u8 = undefined;
+        const file_content = fs.readFile(io,&buf,"notas.md") catch "";
+        var self = Self{
             .buffer = std.ArrayList(u8).empty,
             .window = window,
             .font = text,
+            .io = io,
             .is_running = true,
         };
+        try self.buffer.appendSlice(std.heap.page_allocator,file_content);
+        return self;
 }
 pub fn deinit(self:*Self) void {
     self.window.deinit();
@@ -101,6 +110,14 @@ pub fn handle_event(self: *Self,event: platform.Event)!void {
                     platform.c.SDLK_RETURN  => {  try  self.buffer.appendSlice(std.heap.page_allocator, "\n");
 
                         std.debug.print("buffer raw {any}\n", .{self.buffer.items});
+                    },
+                    platform.c.SDLK_S => {
+                    const mods = platform.c.SDL_GetModState();
+                    if (mods & platform.c.SDL_KMOD_CTRL != 0 ){
+                    try fs.writeFile("notas.md",self.io,self.buffer.items);
+                        std.debug.print("guardando\n",.{});
+                    }
+
                     },
                     // platform.c.SDLK_LEFT     => std.debug.print("flecha izq\n", .{}),
                     // platform.c.SDLK_RIGHT    => std.debug.print("flecha der\n", .{}),
