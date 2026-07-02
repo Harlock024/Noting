@@ -17,8 +17,8 @@ pub fn main(init:std.process.Init) !void {
             .font = "/usr/share/fonts/TTF/DejaVuSans.ttf",
             .path = path,
             .size = 40,
-            .x  = 400,
-            .y = 300,
+            .x  = 20,
+            .y = 20,
         }
     );
     defer app.deinit();

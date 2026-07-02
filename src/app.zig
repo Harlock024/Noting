@@ -2,6 +2,8 @@ const platform = @import("platform");
 const std = @import("std");
 const fs = @import("fs.zig");
 
+const Editor = @import("editor.zig");
+
 pub const Config = struct {
     title: [:0]const u8,
     width: i32,
@@ -18,9 +20,10 @@ pub const Content = struct {
 };
 
 const Self = @This();
+editor: Editor,
 io: std.Io,
 path: []const u8,
-buffer: std.ArrayList(u8),
+// buffer: std.ArrayList(u8),
 window: platform.Window,
 font: platform.Font,
 is_running: bool = true,
@@ -44,25 +47,34 @@ pub fn init(io: std.Io, config: Config, content: Content) !Self {
         content.y,
         window.renderer,
     );
-
     errdefer text.deinit();
-    try window.show();
+
     var buf: [10240]u8 = undefined;
     const file_content = fs.readFile(io, &buf, content.path) catch "";
+
+    var editor = try Editor.init(.{
+     .font  = text.font,
+     .renderer=  window.renderer,
+    });
+    errdefer editor.deinit();
+
+    try editor.buffer.appendSlice(std.heap.page_allocator,file_content);
+    editor.cursor_pos = editor.buffer.items.len;
+    try window.show();
     var self = Self{
-        .buffer = std.ArrayList(u8).empty,
         .path = content.path,
         .window = window,
         .font = text,
         .io = io,
+        .editor = editor, 
         .is_running = true,
     };
-    try self.buffer.appendSlice(std.heap.page_allocator, file_content);
+    try self.editor.buffer.appendSlice(std.heap.page_allocator, file_content);
     return self;
 }
 pub fn deinit(self: *Self) void {
     self.window.deinit();
-    self.buffer.deinit(std.heap.page_allocator);
+    self.editor.buffer.deinit(std.heap.page_allocator);
     platform.deinit();
 }
 
@@ -71,54 +83,57 @@ pub fn update(self: *Self) void {
 }
 
 pub fn render(self: *Self) !void {
-    try self.window.clear(.{
-        .r = 30,
-        .g = 30,
-        .b = 30,
-        .a = 255,
-    });
-
-    if (self.buffer.items.len > 0) {
-        var y_offset: f32 = self.font.y;
-        var lines = std.mem.splitScalar(u8, self.buffer.items, '\n');
-        while (lines.next()) |line| {
-            if (line.len > 0) {
-                try self.font.drawText(line, .{
-                    .r = 220,
-                    .g = 220,
-                    .b = 220,
-                    .a = 255,
-                }, y_offset);
-            }
-            y_offset += 40;
+    try self.window.clear(.{ .r = 30, .g = 30, .b = 30, .a = 255 });
+    
+    var y_offset: f32 = self.font.y;
+    var line_count: usize = 0;
+    var last_line: []const u8 = "";
+    var lines = std.mem.splitScalar(u8, self.editor.buffer.items, '\n');
+    while (lines.next()) |line| {
+        last_line = line;
+        if (line.len > 0) {
+            try self.font.drawText(line, .{
+                .r = 220, .g = 220, .b = 220, .a = 255,
+            }, y_offset);
         }
+        y_offset += 40;
     }
+
+    if (self.editor.buffer.items.len > 0) {
+        for(self.editor.buffer.items[0..self.editor.cursor_pos]) |char| {
+            if(char == '\n') line_count += 1;
+        }
+        const cursor_y = self.font.y + @as(f32,@floatFromInt(line_count)) * 40;
+        try self.editor.drawCursor(self.font.x,cursor_y);
+    }
+    
     try self.window.present();
 }
+
+
 pub fn handle_event(self: *Self, event: platform.Event) !void {
     switch (event) {
         .quit => self.is_running = false,
         .typping => |text| {
-            try self.buffer.appendSlice(std.heap.page_allocator, text);
+            try self.editor.insertText(text);
         },
         .editing => |key| switch (key) {
             platform.c.SDLK_BACKSPACE => {
-                _ = self.buffer.pop();
+                _ = self.editor.deleteChar();
             },
             platform.c.SDLK_RETURN => {
-                try self.buffer.appendSlice(std.heap.page_allocator, "\n");
-
-                std.debug.print("buffer raw {any}\n", .{self.buffer.items});
+                try self.editor.insertEnter();          
+                std.debug.print("buffer raw {any}\n", .{self.editor.buffer.items});
             },
             platform.c.SDLK_S => {
                 const mods = platform.c.SDL_GetModState();
                 if (mods & platform.c.SDL_KMOD_CTRL != 0) {
-                    try fs.writeFile(self.path, self.io, self.buffer.items);
+                    try fs.writeFile(self.path, self.io, self.editor.buffer.items);
                     std.debug.print("guardando en {s}\n", .{self.path});
                 }
             },
-            // platform.c.SDLK_LEFT     => std.debug.print("flecha izq\n", .{}),
-            // platform.c.SDLK_RIGHT    => std.debug.print("flecha der\n", .{}),
+            platform.c.SDLK_LEFT     => try self.editor.cursorLeft(),
+            platform.c.SDLK_RIGHT    => try  self.editor.cursorRight(),
             else => {},
         },
         else => {},
