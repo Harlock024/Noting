@@ -56,12 +56,13 @@ pub fn init(io: std.Io, config: Config, content: Content) !Self {
      .font  = text.font,
      .renderer=  window.renderer,
     });
+
     errdefer editor.deinit();
 
     try editor.buffer.appendSlice(std.heap.page_allocator,file_content);
     editor.cursor_pos = editor.buffer.items.len;
     try window.show();
-    var self = Self{
+    const self = Self{
         .path = content.path,
         .window = window,
         .font = text,
@@ -69,9 +70,9 @@ pub fn init(io: std.Io, config: Config, content: Content) !Self {
         .editor = editor, 
         .is_running = true,
     };
-    try self.editor.buffer.appendSlice(std.heap.page_allocator, file_content);
     return self;
 }
+
 pub fn deinit(self: *Self) void {
     self.window.deinit();
     self.editor.buffer.deinit(std.heap.page_allocator);
@@ -106,7 +107,7 @@ pub fn render(self: *Self) !void {
         const cursor_y = self.font.y + @as(f32,@floatFromInt(line_count)) * 40;
         try self.editor.drawCursor(self.font.x,cursor_y);
     }
-    
+ 
     try self.window.present();
 }
 
@@ -134,6 +135,11 @@ pub fn handle_event(self: *Self, event: platform.Event) !void {
             },
             platform.c.SDLK_LEFT     => try self.editor.cursorLeft(),
             platform.c.SDLK_RIGHT    => try  self.editor.cursorRight(),
+            platform.c.SDLK_UP      => try self.editor.cursorUp(),
+            platform.c.SDLK_DOWN => try self.editor.cursorDown(),
+            platform.c.SDLK_SPACE    => {
+                try self.editor.insertText("");
+            },
             else => {},
         },
         else => {},
