@@ -107,27 +107,35 @@ pub fn cursorRight(self:*Self)  !void{
 
 pub fn cursorUp(self:*Self) !void {
     if(self.buffer.items.len == 0) return;
-    if(self.cursor_pos > 0) {
-       const pos = std.mem.lastIndexOfScalar(u8,self.buffer.items[0..self.cursor_pos],'\n');
+    if(self.cursor_pos > 0) { 
+    const pos = std.mem.lastIndexOfScalar(u8,self.buffer.items[0..self.cursor_pos],'\n');
         if(pos == null) return;
         if(pos == 0) return;
-    const prev_line_start = std.mem.lastIndexOfScalar(u8, self.buffer.items[0..pos.?], '\n');
-    self.cursor_pos = if (prev_line_start) |p| p + 1 else 0;
+    const current_line_start = std.mem.lastIndexOfScalar(u8, self.buffer.items[0..self.cursor_pos], '\n');
+    const col = self.cursor_pos - if (current_line_start) |p| p + 1 else 0;
+        const prev_start = std.mem.lastIndexOfScalar(u8,self.buffer.items[0..pos.?], '\n');
+        const line_start = if(prev_start) |p| p + 1 else 0 ;
+        self.cursor_pos = line_start + @min(col,pos.? - line_start);
+
     }
 
 }
 
 pub fn cursorDown(self:*Self) !void {
     if(self.buffer.items.len == 0 )return;
-    const next_line_start = self.cursor_pos + 1;
-    if(next_line_start >= self.buffer.items.len)return;
-    
-    const relative_pos = std.mem.indexOfScalar(u8, self.buffer.items[next_line_start..],'\n');
-    if(relative_pos) |offset| {
-        self.cursor_pos = next_line_start + offset + 1;
-    }else {
-        self.cursor_pos = self.buffer.items.len;
-    }
+    if(self.cursor_pos < self.buffer.items.len) {
+        const pos = std.mem.indexOfScalar(u8, self.buffer.items[self.cursor_pos..], '\n');
+        if(pos == null) return;
+        const current_line_start = std.mem.indexOfScalar(u8,self.buffer.items[self.cursor_pos..],'\n');
+    // absulute pos
+        const col = self.cursor_pos + if (current_line_start) |p| p + 1 else 0;
+        const next_start = std.mem.indexOfScalar(u8,self.buffer.items[pos.?..],'\n');
+        const line_start = if(next_start) |p| p + 1 else 0;
+        self.cursor_pos = line_start + @min(col,pos.? + next_start.?);
+
+    }else {return;}
+
+
 }
 
 
@@ -142,9 +150,9 @@ fn getTextBeforeCursor(self:*Self) []const u8{
     if (self.cursor_pos == 0) {
         return &[_]u8{};
     }
-        
+          
     const pos = @min(self.cursor_pos, self.buffer.items.len);
-
+    
 
     if(self.cursor_pos > self.buffer.items.len){
         self.cursor_pos = self.buffer.items.len;
@@ -167,11 +175,10 @@ fn getTextBeforeCursor(self:*Self) []const u8{
 }
 
 
-
 fn getCurrentLine(self: *Self) []const u8 {
     var line_start: usize = 0;
     var line_end: usize = self.buffer.items.len;
-    
+
     for (self.buffer.items, 0..) |char, i| {
         if (char == '\n') {
             if (i < self.cursor_pos) {

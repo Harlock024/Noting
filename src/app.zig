@@ -124,7 +124,6 @@ pub fn handle_event(self: *Self, event: platform.Event) !void {
             },
             platform.c.SDLK_RETURN => {
                 try self.editor.insertEnter();          
-                std.debug.print("buffer raw {any}\n", .{self.editor.buffer.items});
             },
             platform.c.SDLK_S => {
                 const mods = platform.c.SDL_GetModState();
@@ -135,8 +134,14 @@ pub fn handle_event(self: *Self, event: platform.Event) !void {
             },
             platform.c.SDLK_LEFT     => try self.editor.cursorLeft(),
             platform.c.SDLK_RIGHT    => try  self.editor.cursorRight(),
-            platform.c.SDLK_UP      => try self.editor.cursorUp(),
-            platform.c.SDLK_DOWN => try self.editor.cursorDown(),
+            platform.c.SDLK_UP      => {
+                std.debug.print("cursor pos {}\n", .{self.editor.cursor_pos});
+                try self.editor.cursorUp();
+            },
+            platform.c.SDLK_DOWN => {
+                std.debug.print("cursor pos {}\n", .{self.editor.cursor_pos});
+                try self.editor.cursorDown();
+            },
             platform.c.SDLK_SPACE    => {
                 try self.editor.insertText("");
             },
