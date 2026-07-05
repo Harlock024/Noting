@@ -1,2 +1,1 @@
-h o l a
-mundo
+hola mundo

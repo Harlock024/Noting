@@ -16,7 +16,7 @@ pub fn main(init:std.process.Init) !void {
         .{
             .font = "public/jetbrains-mono-latin-400-normal.ttf",
             .path = path,
-            .size = 40,
+            .size = 18,
             .x  = 20,
             .y = 20,
         }
