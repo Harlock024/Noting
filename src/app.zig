@@ -99,9 +99,10 @@ pub fn render(self: *Self) !void {
         }
         y_offset += 40;
     }
-
+        
+    const safe_pos = @min(self.editor.cursor_pos, self.editor.buffer.items.len);
     if (self.editor.buffer.items.len > 0) {
-        for(self.editor.buffer.items[0..self.editor.cursor_pos]) |char| {
+        for(self.editor.buffer.items[0..safe_pos]) |char| {
             if(char == '\n') line_count += 1;
         }
         const cursor_y = self.font.y + @as(f32,@floatFromInt(line_count)) * 40;

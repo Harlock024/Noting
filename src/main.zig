@@ -14,7 +14,7 @@ pub fn main(init:std.process.Init) !void {
             .is_resizable = true,
         },
         .{
-            .font = "/usr/share/fonts/TTF/DejaVuSans.ttf",
+            .font = "public/jetbrains-mono-latin-400-normal.ttf",
             .path = path,
             .size = 40,
             .x  = 20,

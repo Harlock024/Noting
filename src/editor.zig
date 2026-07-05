@@ -126,12 +126,13 @@ pub fn cursorDown(self:*Self) !void {
     if(self.cursor_pos < self.buffer.items.len) {
         const pos = std.mem.indexOfScalar(u8, self.buffer.items[self.cursor_pos..], '\n');
         if(pos == null) return;
-        const current_line_start = std.mem.indexOfScalar(u8,self.buffer.items[self.cursor_pos..],'\n');
+        const current_line_start = std.mem.indexOfScalar(u8,self.buffer.items[0..self.cursor_pos],'\n');
     // absulute pos
-        const col = self.cursor_pos + if (current_line_start) |p| p + 1 else 0;
+        const col = self.cursor_pos - if (current_line_start) |p| p + 1 else 0;
         const next_start = std.mem.indexOfScalar(u8,self.buffer.items[pos.?..],'\n');
-        const line_start = if(next_start) |p| p + 1 else 0;
-        self.cursor_pos = line_start + @min(col,pos.? + next_start.?);
+        const next_line_start = self.cursor_pos + pos.? + 1;
+        const line_end = if (next_start) |p| next_line_start + p else self.buffer.items.len;
+        self.cursor_pos = @min(next_line_start + col, line_end);
 
     }else {return;}
 
