@@ -2,6 +2,7 @@ const platform = @import("platform");
 
 const std = @import("std");
 
+
 const Self = @This();
 
 font: *platform.c.TTF_Font,
@@ -11,7 +12,8 @@ cursor_pos:usize = 0,
 line_height: c_int = 0,
 line_count: u8 = 0,
 scroll_offset:u8 = 0,
-
+preferred_col:usize = 0,
+at_line_end:bool = false,
 
 const Config = struct {
 font: *platform.c.TTF_Font,
@@ -40,17 +42,30 @@ pub fn init(config: Config) !Self {
 pub fn deinit(self:*Self) void {
     self.font = undefined;
     self.renderer = undefined;
-
 }
                                             
 pub fn insertText(self:*Self,text:[]const u8) !void{
     try self.buffer.insertSlice(std.heap.page_allocator,self.cursor_pos, text);
     self.cursor_pos +=text.len;
+    const current_line_start = std.mem.lastIndexOfScalar(u8, self.buffer.items[0..self.cursor_pos], '\n');
+    if(self.cursor_pos == self.buffer.items.len){ 
+        self.at_line_end = true;
+    }else{
+        self.at_line_end = (self.buffer.items[self.cursor_pos] == '\n'); 
+    }
+    self.preferred_col = self.cursor_pos - if (current_line_start) |p| p + 1 else 0;
 }
 
 pub fn insertEnter(self:*Self) !void {
     try self.buffer.insertSlice(std.heap.page_allocator,self.cursor_pos,"\n");
     self.cursor_pos +=1;
+    const current_line_start = std.mem.lastIndexOfScalar(u8, self.buffer.items[0..self.cursor_pos], '\n');
+    if(self.cursor_pos == self.buffer.items.len){ 
+        self.at_line_end = true;
+    }else{
+        self.at_line_end = (self.buffer.items[self.cursor_pos] == '\n'); 
+    }
+    self.preferred_col = self.cursor_pos - if (current_line_start) |p| p + 1 else 0;
 }
 
 pub fn deleteChar(self:*Self) void{
@@ -59,6 +74,13 @@ pub fn deleteChar(self:*Self) void{
     if(self.cursor_pos == 0) return;
     _ = self.buffer.orderedRemove(self.cursor_pos - 1);
     self.cursor_pos -=1;
+    const current_line_start = std.mem.lastIndexOfScalar(u8, self.buffer.items[0..self.cursor_pos], '\n');
+    if(self.cursor_pos == self.buffer.items.len){ 
+        self.at_line_end = true;
+    }else{
+        self.at_line_end = (self.buffer.items[self.cursor_pos] == '\n'); 
+    }  
+    self.preferred_col = self.cursor_pos - if (current_line_start) |p| p + 1 else 0;
 }
 
 pub fn drawCursor(self: *Self, x: f32, y: f32) !void {    
@@ -95,6 +117,14 @@ pub fn cursorLeft(self:*Self) !void {
     if(self.buffer.items.len == 0) return;
     if(self.cursor_pos > 0) {
     self.cursor_pos-=1;
+    const current_line_start = std.mem.lastIndexOfScalar(u8, self.buffer.items[0..self.cursor_pos], '\n');
+    if(self.cursor_pos == self.buffer.items.len){ 
+        self.at_line_end = true;
+    }else{
+        self.at_line_end = (self.buffer.items[self.cursor_pos] == '\n'); 
+    }  
+
+    self.preferred_col = self.cursor_pos - if (current_line_start) |p| p + 1 else 0;
     }
 }
 
@@ -102,6 +132,13 @@ pub fn cursorRight(self:*Self)  !void{
     if(self.buffer.items.len == 0 )return;
     if(self.cursor_pos < self.buffer.items.len){
     self.cursor_pos +=1;
+    const current_line_start = std.mem.lastIndexOfScalar(u8, self.buffer.items[0..self.cursor_pos], '\n');
+    if(self.cursor_pos == self.buffer.items.len){ 
+        self.at_line_end = true;
+    }else{
+        self.at_line_end = (self.buffer.items[self.cursor_pos] == '\n'); 
+    }  
+    self.preferred_col = self.cursor_pos - if (current_line_start) |p| p + 1 else 0;
     }
 }
 
@@ -111,16 +148,13 @@ pub fn cursorUp(self:*Self) !void {
     const pos = std.mem.lastIndexOfScalar(u8,self.buffer.items[0..self.cursor_pos],'\n');
         if(pos == null) return;
         if(pos == 0) return;
-    const current_line_start = std.mem.lastIndexOfScalar(u8, self.buffer.items[0..self.cursor_pos], '\n');
-    const col = self.cursor_pos - if (current_line_start) |p| p + 1 else 0;
         const prev_start = std.mem.lastIndexOfScalar(u8,self.buffer.items[0..pos.?], '\n');
         const line_start = if(prev_start) |p| p + 1 else 0 ;
-        self.cursor_pos = line_start + @min(col,pos.? - line_start);
+        self.cursor_pos = line_start + @min(self.preferred_col,pos.? - line_start);
 
     }
 
 }
-
 
 pub fn cursorDown(self:*Self) !void {
     if(self.buffer.items.len == 0 )return;
@@ -128,23 +162,21 @@ pub fn cursorDown(self:*Self) !void {
 
         const pos = std.mem.indexOfScalar(u8, self.buffer.items[self.cursor_pos..], '\n');
         if(pos == null) return;
-        const current_line_start = std.mem.lastIndexOfScalar(u8, self.buffer.items[0..self.cursor_pos], '\n');
-        const col = self.cursor_pos - if (current_line_start) |p| p + 1 else 0;
         const absolute_pos= self.cursor_pos + pos.?;
         const next_line_start = absolute_pos + 1;
         const next_start = std.mem.indexOfScalar(u8,self.buffer.items[next_line_start..],'\n');
         const line_end = if (next_start) |p| next_line_start + p + 1 else self.buffer.items.len;
-        if(self.cursor_pos ==  absolute_pos and  col > 0){
-            self.cursor_pos = if (next_start != null) line_end - 1 else line_end;
-            std.debug.print("col:{} next_line_start:{} line_end:{}\n", .{col, next_line_start, line_end});
-            return;    
-        }
-        if (next_line_start >= line_end - 1) {
-            self.cursor_pos = next_line_start;
+        std.debug.print("cursorDown: next_line_start:{} line_end:{} preferred_col:{}\n", .{next_line_start, line_end, self.preferred_col});
+        if(self.at_line_end){
+            self.cursor_pos = line_end - 1;
             return;
         }
-        self.cursor_pos = @min(next_line_start + col, line_end);
-std.debug.print("col:{} next_line_start:{} line_end:{}\n", .{col, next_line_start, line_end});
+        if(next_line_start >= line_end - 1) {
+            self.cursor_pos = line_end - 1;
+            return;
+        }       
+
+        self.cursor_pos = @min(next_line_start + self.preferred_col, line_end - 1);
 
 }
 
