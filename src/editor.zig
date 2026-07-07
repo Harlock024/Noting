@@ -124,7 +124,8 @@ pub fn cursorUp(self:*Self) !void {
 
 pub fn cursorDown(self:*Self) !void {
     if(self.buffer.items.len == 0 )return;
-    if(self.cursor_pos < self.buffer.items.len) {
+    if(self.cursor_pos >= self.buffer.items.len) return;
+
         const pos = std.mem.indexOfScalar(u8, self.buffer.items[self.cursor_pos..], '\n');
         if(pos == null) return;
         const current_line_start = std.mem.lastIndexOfScalar(u8, self.buffer.items[0..self.cursor_pos], '\n');
@@ -134,11 +135,11 @@ pub fn cursorDown(self:*Self) !void {
         const next_start = std.mem.indexOfScalar(u8,self.buffer.items[next_line_start..],'\n');
         const line_end = if (next_start) |p| next_line_start + p + 1 else self.buffer.items.len;
         if(self.buffer.items[self.cursor_pos] == '\n'){
-        self.cursor_pos = if (next_start != null) line_end - 1 else line_end;
+            self.cursor_pos = if (next_start != null) line_end - 1 else line_end;
         return;    
         }
         self.cursor_pos = @min(next_line_start + col, line_end);
-    }else {return;}
+    
 }
 
 fn getTextBeforeCursor(self:*Self) []const u8{
