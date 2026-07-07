@@ -23,7 +23,6 @@ const Self = @This();
 editor: Editor,
 io: std.Io,
 path: []const u8,
-// buffer: std.ArrayList(u8),
 window: platform.Window,
 font: platform.Font,
 is_running: bool = true,
@@ -89,7 +88,9 @@ pub fn render(self: *Self) !void {
     var y_offset: f32 = self.font.y;
     var line_count: usize = 0;
     var last_line: []const u8 = "";
+
     var lines = std.mem.splitScalar(u8, self.editor.buffer.items, '\n');
+
     while (lines.next()) |line| {
         last_line = line;
         if (line.len > 0) {
@@ -97,7 +98,7 @@ pub fn render(self: *Self) !void {
                 .r = 220, .g = 220, .b = 220, .a = 255,
             }, y_offset);
         }
-        y_offset += 40;
+        y_offset += 20;
     }
         
     const safe_pos = @min(self.editor.cursor_pos, self.editor.buffer.items.len);
@@ -105,7 +106,7 @@ pub fn render(self: *Self) !void {
         for(self.editor.buffer.items[0..safe_pos]) |char| {
             if(char == '\n') line_count += 1;
         }
-        const cursor_y = self.font.y + @as(f32,@floatFromInt(line_count)) * 40;
+        const cursor_y = self.font.y + @as(f32,@floatFromInt(line_count)) * 20;
         try self.editor.drawCursor(self.font.x,cursor_y);
     }
  

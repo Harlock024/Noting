@@ -10,7 +10,7 @@ renderer:*platform.c.SDL_Renderer,
 cursor_pos:usize = 0,
 line_height: c_int = 0,
 line_count: u8 = 0,
-
+scroll_offset:u8 = 0,
 
 
 const Config = struct {
@@ -121,26 +121,25 @@ pub fn cursorUp(self:*Self) !void {
 
 }
 
+
 pub fn cursorDown(self:*Self) !void {
     if(self.buffer.items.len == 0 )return;
     if(self.cursor_pos < self.buffer.items.len) {
         const pos = std.mem.indexOfScalar(u8, self.buffer.items[self.cursor_pos..], '\n');
         if(pos == null) return;
-        const current_line_start = std.mem.indexOfScalar(u8,self.buffer.items[0..self.cursor_pos],'\n');
-    // absulute pos
+        const current_line_start = std.mem.lastIndexOfScalar(u8, self.buffer.items[0..self.cursor_pos], '\n');
         const col = self.cursor_pos - if (current_line_start) |p| p + 1 else 0;
-        const next_start = std.mem.indexOfScalar(u8,self.buffer.items[pos.?..],'\n');
-        const next_line_start = self.cursor_pos + pos.? + 1;
-        const line_end = if (next_start) |p| next_line_start + p else self.buffer.items.len;
+        const absolute_pos= self.cursor_pos + pos.?;
+        const next_line_start = absolute_pos + 1;
+        const next_start = std.mem.indexOfScalar(u8,self.buffer.items[next_line_start..],'\n');
+        const line_end = if (next_start) |p| next_line_start + p + 1 else self.buffer.items.len;
+        if(self.buffer.items[self.cursor_pos] == '\n'){
+        self.cursor_pos = if (next_start != null) line_end - 1 else line_end;
+        return;    
+        }
         self.cursor_pos = @min(next_line_start + col, line_end);
-
     }else {return;}
-
-
 }
-
-
-
 
 fn getTextBeforeCursor(self:*Self) []const u8{
     
