@@ -84,12 +84,34 @@ pub fn update(self: *Self) void {
 
 pub fn render(self: *Self) !void {
     try self.window.clear(.{ .r = 30, .g = 30, .b = 30, .a = 255 });
-    
-    var y_offset: f32 = self.font.y;
     var line_count: usize = 0;
     var last_line: []const u8 = "";
+    var w : c_int = 0;
+    var h : c_int = 0;
+    const safe_pos = @min(self.editor.cursor_pos, self.editor.buffer.items.len);
+    if (self.editor.buffer.items.len > 0) {
+        for(self.editor.buffer.items[0..safe_pos]) |char| {
+            if(char == '\n') line_count += 1;
+        }
+        const cursor_y = self.font.y + @as(f32,@floatFromInt(line_count)) * 20;
+        try self.editor.drawCursor(self.font.x,cursor_y);
+    }
+    _ = platform.c.SDL_GetWindowSize(self.window.window, &w, &h);
+    const lines_visibles = @as(usize, @intCast(@divFloor(h,self.editor.line_height)));
+
+
 
     var lines = std.mem.splitScalar(u8, self.editor.buffer.items, '\n');
+        if(line_count >= self.editor.scroll_offset + lines_visibles) { 
+        self.editor.scroll_offset += 1;
+        }
+
+        if (line_count <= self.editor.scroll_offset) {
+            if (self.editor.scroll_offset > 0) {
+                self.editor.scroll_offset -= 1;
+            }
+        }   
+        var y_offset: f32 = self.font.y - @as(f32, @floatFromInt(self.editor.scroll_offset)) * @as(f32, @floatFromInt(self.editor.line_height));
 
     while (lines.next()) |line| {
         last_line = line;
@@ -101,17 +123,10 @@ pub fn render(self: *Self) !void {
         y_offset += 20;
     }
         
-    const safe_pos = @min(self.editor.cursor_pos, self.editor.buffer.items.len);
-    if (self.editor.buffer.items.len > 0) {
-        for(self.editor.buffer.items[0..safe_pos]) |char| {
-            if(char == '\n') line_count += 1;
-        }
-        const cursor_y = self.font.y + @as(f32,@floatFromInt(line_count)) * 20;
-        try self.editor.drawCursor(self.font.x,cursor_y);
-    }
  
     try self.window.present();
 }
+
 
 
 pub fn handle_event(self: *Self, event: platform.Event) !void {

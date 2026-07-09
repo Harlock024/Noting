@@ -11,7 +11,7 @@ renderer:*platform.c.SDL_Renderer,
 cursor_pos:usize = 0,
 line_height: c_int = 0,
 line_count: u8 = 0,
-scroll_offset:u8 = 0,
+scroll_offset:usize = 0,
 preferred_col:usize = 0,
 at_line_end:bool = false,
 
