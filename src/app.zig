@@ -96,10 +96,9 @@ pub fn render(self: *Self) !void {
         const cursor_y = self.font.y + @as(f32,@floatFromInt(line_count)) * 20;
         try self.editor.drawCursor(self.font.x,cursor_y);
     }
+
     _ = platform.c.SDL_GetWindowSize(self.window.window, &w, &h);
     const lines_visibles = @as(usize, @intCast(@divFloor(h,self.editor.line_height)));
-
-
 
     var lines = std.mem.splitScalar(u8, self.editor.buffer.items, '\n');
         if(line_count >= self.editor.scroll_offset + lines_visibles) { 
